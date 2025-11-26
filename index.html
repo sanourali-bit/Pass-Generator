@@ -1,8 +1,441 @@
-<div style="max-width:650px;margin:25px auto;font-family:Arial,sans-serif;padding:20px;background:white;border-radius:12px;box-shadow:0 0 12px rgba(0,0,0,0.1);"> <h2>🔐 Password Generator + Google Safe Browsing Checker</h2> <!-- PASSWORD GENERATOR --> <h3>1️⃣ Generate Password</h3>
-Length: <input id="len" type="number" min="6" max="64" value="16" style="width:80px;">
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Generator</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+  body {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  }
 
-<label><input id="symbols" type="checkbox" checked> Symbols</label> <label><input id="numbers" type="checkbox" checked> Numbers</label>
+  html, body {
+    height: 100%;
+  }
 
-<br><br> <button id="generateBtn">Generate</button> <button id="copyBtn">Copy</button>
+  .app-wrapper {
+    width: 100%;
+    min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
 
-<div style="margin-top:10px;"> <strong>Password:</strong> <div id="result" style="padding:10px;background:#f3f3f3;border:1px solid #ddd;border-radius:6px;"></div> </div> <div style="margin-top:10px;"> <strong>Strength:</strong> <div id="strength"></div> </div> <div style="margin-top:10px;"> <strong>Breach Check:</strong> <div id="pwnedInfo" style="color:#c33;"></div> </div> <hr style="margin:30px 0;"> <!-- SAFE BROWSING CHECK --> <h3>2️⃣ Google Safe Browsing URL Checker (API KEY used)</h3> <p>This shows API integration for your college project.</p> <input id="urlInput" type="text" placeholder="Enter a URL (example: http://test.com)" style="width:100%;padding:8px;"> <button id="checkUrlBtn" style="margin-top:10px;">Check URL Safety</button> <div id="urlResult" style="margin-top:10px;"></div> </div> <script> /* ------------------- PASSWORD GENERATOR --------------------- */ function generatePassword(length, useSymbols, useNumbers) { const lower="abcdefghijklmnopqrstuvwxyz"; const upper="ABCDEFGHIJKLMNOPQRSTUVWXYZ"; const nums="0123456789"; const syms="!@#$%^&*()_+-=[]{};:,.<>/?"; let chars = lower + upper; if(useNumbers) chars += nums; if(useSymbols) chars += syms; let out=""; const arr=new Uint32Array(length); crypto.getRandomValues(arr); for(let i=0;i<length;i++){ out += chars[arr[i] % chars.length]; } return out; } function checkStrength(pw){ let score = 0; if(pw.length >= 12) score++; if(/[A-Z]/.test(pw)) score++; if(/[0-9]/.test(pw)) score++; if(/[!@#$%^&*()_+\-]/.test(pw)) score++; const s=document.getElementById("strength"); if(score <= 1){ s.textContent="Weak ❌"; s.style.color="red"; } else if(score === 2){ s.textContent="Medium ⚠️"; s.style.color="orange"; } else{ s.textContent="Strong ✅"; s.style.color="green"; } } async function sha1(str){ const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(str)); return [...new Uint8Array(buf)].map(x=>x.toString(16).padStart(2,"0")).join("").toUpperCase(); } async function checkPwned(password){ const hash = await sha1(password); const prefix = hash.substring(0,5); const suffix = hash.substring(5); const res = await fetch("https://api.pwnedpasswords.com/range/"+prefix); const text = await res.text(); for(const line of text.split("\n")){ const parts = line.split(":"); if(parts[0] === suffix){ return parseInt(parts[1]); } } return 0; } document.getElementById("generateBtn").onclick = async () => { const len = parseInt(document.getElementById("len").value); const pw = generatePassword(len, symbols.checked, numbers.checked); document.getElementById("result").textContent = pw; checkStrength(pw); pwnedInfo.textContent = "Checking breaches..."; const count = await checkPwned(pw); if(count > 0){ pwnedInfo.innerHTML = `⚠️ Found in breaches <b>${count}</b> times`; } else { pwnedInfo.innerHTML = "✅ Not found in breach database"; } }; copyBtn.onclick = () => { navigator.clipboard.writeText(result.textContent); alert("Copied!"); }; /* ------------------- GOOGLE SAFE BROWSING API --------------------- */ document.getElementById("checkUrlBtn").onclick = async () => { const urlInput = document.getElementById("urlInput").value.trim(); const out = document.getElementById("urlResult"); out.textContent = "Checking with Google API..."; const API_KEY = "AIzaSyDv0uNOCdxOk_s5db3XSd3KfrMkx1PyEVI"; // ← your API key const body = { client: { clientId: "college-project", clientVersion: "1.0" }, threatInfo: { threatTypes: ["MALWARE","SOCIAL_ENGINEERING","UNWANTED_SOFTWARE"], platformTypes: ["ANY_PLATFORM"], threatEntryTypes: ["URL"], threatEntries: [{ url: urlInput }] } }; const res = await fetch( "https://safebrowsing.googleapis.com/v4/threatMatches:find?key=" + API_KEY, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } ); const data = await res.json(); if(data && data.matches){ out.innerHTML = `<span style="color:red;">⚠️ Unsafe! Google detected threats.</span>`; } else { out.innerHTML = `<span style="color:green;">✅ Safe — No threats detected.</span>`; } }; </script>
+  .container {
+    width: 100%;
+    max-width: 480px;
+    padding: 32px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 32px 0;
+    line-height: 1.2;
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  label {
+    display: block;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 2px solid;
+    border-radius: 12px;
+    outline: none;
+    transition: all 0.2s;
+    box-sizing: border-box;
+  }
+
+  input[type="number"]:focus {
+    border-width: 3px;
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .checkbox-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .checkbox-wrapper:hover {
+    transform: translateY(-2px);
+  }
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .checkbox-label {
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  button {
+    flex: 1;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+  }
+
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .result-box {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+    line-height: 1.6;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .strength-indicator {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .copy-feedback {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .copy-feedback.show {
+    opacity: 1;
+  }
+
+  /* Visually hidden but accessible to screen readers */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+</style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="app-wrapper">
+   <main class="container">
+    <h1 id="title">Password Generator</h1>
+    <div class="form-group"><label for="length">Password Length</label> <input type="number" id="length" value="16" min="6" max="64" aria-describedby="length-help">
+     <div id="length-help" class="sr-only">
+      Enter a number between 6 and 64
+     </div>
+    </div>
+    <div class="options-grid">
+     <div class="checkbox-wrapper"><input type="checkbox" id="numbers" checked aria-labelledby="numbers-label"> <span id="numbers-label" class="checkbox-label">Numbers</span>
+     </div>
+     <div class="checkbox-wrapper"><input type="checkbox" id="symbols" checked aria-labelledby="symbols-label"> <span id="symbols-label" class="checkbox-label">Symbols</span>
+     </div>
+    </div>
+    <div class="button-group"><button id="generateBtn" aria-label="Generate new password">Generate Password</button> <button id="copyBtn" aria-label="Copy password to clipboard">Copy to Clipboard</button>
+    </div>
+    <div class="result-box" id="output" role="status" aria-live="polite">
+     Your password will appear here...
+    </div>
+    <div class="strength-indicator" id="strength" role="status" aria-live="polite">
+     Strength: —
+    </div>
+   </main>
+  </div>
+  <div class="copy-feedback" id="copyFeedback" role="status" aria-live="polite">
+   Password copied to clipboard!
+  </div>
+  <script>
+const defaultConfig = {
+  background_color: "#0f172a",
+  surface_color: "#1e293b",
+  text_color: "#e2e8f0",
+  primary_action_color: "#10b981",
+  secondary_action_color: "#3b82f6",
+  title: "Password Generator",
+  generate_button_text: "Generate Password",
+  copy_button_text: "Copy to Clipboard",
+  placeholder_text: "Your password will appear here..."
+};
+
+let currentPassword = "";
+
+async function onConfigChange(config) {
+  const backgroundColor = config.background_color || defaultConfig.background_color;
+  const surfaceColor = config.surface_color || defaultConfig.surface_color;
+  const textColor = config.text_color || defaultConfig.text_color;
+  const primaryActionColor = config.primary_action_color || defaultConfig.primary_action_color;
+  const secondaryActionColor = config.secondary_action_color || defaultConfig.secondary_action_color;
+
+  // Apply colors
+  document.querySelector('.app-wrapper').style.background = backgroundColor;
+  document.querySelector('.container').style.background = surfaceColor;
+  document.querySelector('h1').style.color = textColor;
+  
+  document.querySelectorAll('label, .checkbox-label').forEach(el => {
+    el.style.color = textColor;
+  });
+
+  const numberInput = document.getElementById('length');
+  numberInput.style.background = backgroundColor;
+  numberInput.style.borderColor = primaryActionColor;
+  numberInput.style.color = textColor;
+
+  document.querySelectorAll('.checkbox-wrapper').forEach(wrapper => {
+    wrapper.style.background = backgroundColor;
+  });
+
+  const generateBtn = document.getElementById('generateBtn');
+  generateBtn.style.background = primaryActionColor;
+  generateBtn.style.color = backgroundColor;
+
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.style.background = secondaryActionColor;
+  copyBtn.style.color = '#ffffff';
+
+  document.getElementById('output').style.background = backgroundColor;
+  document.getElementById('output').style.color = textColor;
+
+  document.getElementById('strength').style.background = backgroundColor;
+  document.getElementById('strength').style.color = textColor;
+
+  document.getElementById('copyFeedback').style.background = primaryActionColor;
+  document.getElementById('copyFeedback').style.color = backgroundColor;
+
+  // Update text content
+  document.getElementById('title').textContent = config.title || defaultConfig.title;
+  document.getElementById('generateBtn').textContent = config.generate_button_text || defaultConfig.generate_button_text;
+  document.getElementById('copyBtn').textContent = config.copy_button_text || defaultConfig.copy_button_text;
+  
+  if (!currentPassword) {
+    document.getElementById('output').textContent = config.placeholder_text || defaultConfig.placeholder_text;
+  }
+}
+
+function generatePassword() {
+  const length = parseInt(document.getElementById("length").value);
+  const useNumbers = document.getElementById("numbers").checked;
+  const useSymbols = document.getElementById("symbols").checked;
+
+  if (length < 6 || length > 64) {
+    showFeedback("Please enter a length between 6 and 64");
+    return;
+  }
+
+  let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if (useNumbers) chars += "0123456789";
+  if (useSymbols) chars += "!@#$%^&*()_+-=[]{}<>?/.";
+
+  let password = "";
+  const arr = new Uint32Array(length);
+  crypto.getRandomValues(arr);
+
+  for (let i = 0; i < length; i++) {
+    password += chars[arr[i] % chars.length];
+  }
+
+  currentPassword = password;
+  document.getElementById("output").textContent = password;
+  evaluateStrength(password);
+}
+
+function evaluateStrength(password) {
+  let score = 0;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[!@#$%^&*()]/.test(password)) score++;
+
+  const strength = document.getElementById("strength");
+  const config = window.elementSdk ? window.elementSdk.config : defaultConfig;
+  const primaryColor = config.primary_action_color || defaultConfig.primary_action_color;
+  const backgroundColor = config.background_color || defaultConfig.background_color;
+
+  if (score <= 1) {
+    strength.textContent = "Strength: Weak";
+    strength.style.background = "#ef4444";
+    strength.style.color = "#ffffff";
+  } else if (score === 2 || score === 3) {
+    strength.textContent = "Strength: Medium";
+    strength.style.background = "#f59e0b";
+    strength.style.color = "#ffffff";
+  } else {
+    strength.textContent = "Strength: Strong";
+    strength.style.background = primaryColor;
+    strength.style.color = backgroundColor;
+  }
+}
+
+function copyPassword() {
+  const password = document.getElementById("output").textContent;
+  const config = window.elementSdk ? window.elementSdk.config : defaultConfig;
+  const placeholderText = config.placeholder_text || defaultConfig.placeholder_text;
+  
+  if (!password || password === placeholderText) {
+    showFeedback("Generate a password first!");
+    return;
+  }
+
+  navigator.clipboard.writeText(password).then(() => {
+    showFeedback("Password copied to clipboard!");
+  }).catch(() => {
+    showFeedback("Failed to copy password");
+  });
+}
+
+function showFeedback(message) {
+  const feedback = document.getElementById('copyFeedback');
+  feedback.textContent = message;
+  feedback.classList.add('show');
+  
+  setTimeout(() => {
+    feedback.classList.remove('show');
+  }, 2000);
+}
+
+// Event listeners
+document.getElementById('generateBtn').addEventListener('click', generatePassword);
+document.getElementById('copyBtn').addEventListener('click', copyPassword);
+
+// Initialize Element SDK
+if (window.elementSdk) {
+  window.elementSdk.init({
+    defaultConfig,
+    onConfigChange,
+    mapToCapabilities: (config) => ({
+      recolorables: [
+        {
+          get: () => config.background_color || defaultConfig.background_color,
+          set: (value) => {
+            config.background_color = value;
+            window.elementSdk.setConfig({ background_color: value });
+          }
+        },
+        {
+          get: () => config.surface_color || defaultConfig.surface_color,
+          set: (value) => {
+            config.surface_color = value;
+            window.elementSdk.setConfig({ surface_color: value });
+          }
+        },
+        {
+          get: () => config.text_color || defaultConfig.text_color,
+          set: (value) => {
+            config.text_color = value;
+            window.elementSdk.setConfig({ text_color: value });
+          }
+        },
+        {
+          get: () => config.primary_action_color || defaultConfig.primary_action_color,
+          set: (value) => {
+            config.primary_action_color = value;
+            window.elementSdk.setConfig({ primary_action_color: value });
+          }
+        },
+        {
+          get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+          set: (value) => {
+            config.secondary_action_color = value;
+            window.elementSdk.setConfig({ secondary_action_color: value });
+          }
+        }
+      ],
+      borderables: [],
+      fontEditable: undefined,
+      fontSizeable: undefined
+    }),
+    mapToEditPanelValues: (config) => new Map([
+      ["title", config.title || defaultConfig.title],
+      ["generate_button_text", config.generate_button_text || defaultConfig.generate_button_text],
+      ["copy_button_text", config.copy_button_text || defaultConfig.copy_button_text],
+      ["placeholder_text", config.placeholder_text || defaultConfig.placeholder_text]
+    ])
+  });
+}
+
+// Initial render
+onConfigChange(defaultConfig);
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9a479a96409147b2',t:'MTc2NDE0MTQyNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
